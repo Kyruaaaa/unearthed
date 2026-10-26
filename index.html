@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unearthed</title>
+<meta name="description" content="Unearthed — thirty rocks and one stranger, stripped of their outer skin. Turn them over to find the colour inside.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f6f6;
+    --line: #ebebeb;
+    --line-strong: #cfcfcf;
+    --ink: #111111;
+    --ink-2: #555555;
+    --ink-3: #999999;
+    --ink-4: #c4c4c4;
+    --gutter: clamp(16px, 4vw, 48px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Mono', ui-monospace, monospace;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  :focus-visible { outline: 1px solid var(--ink-2); outline-offset: 3px; }
+
+  .label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* ── TICKER ─────────────────────────────────────────────── */
+  .ticker {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    height: 28px; overflow: hidden;
+    display: flex; align-items: center;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .ticker-track { display: flex; white-space: nowrap; will-change: transform; }
+  .ticker-track span {
+    font-size: 9px; letter-spacing: 0.13em; color: var(--ink-4);
+    padding-right: 72px; flex-shrink: 0;
+  }
+
+  /* ── HERO ───────────────────────────────────────────────── */
+  header {
+    min-height: 92vh;
+    padding: 28px var(--gutter) 40px;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+  }
+  nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 22px;
+  }
+  nav ul { list-style: none; display: flex; gap: 28px; }
+  nav a { text-decoration: none; transition: color .15s; }
+  nav a:hover { color: var(--ink); }
+
+  .hero-center {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 28px; text-align: center;
+  }
+  .hero-shells { display: flex; gap: clamp(8px, 3vw, 40px); align-items: center; }
+  .hero-shells .stack { width: clamp(70px, 14vw, 180px); }
+  h1 {
+    font-weight: 300;
+    font-size: clamp(34px, 7vw, 88px);
+    letter-spacing: 0.32em;
+    margin-right: -0.32em; /* optically re-centre tracked caps */
+    text-transform: uppercase;
+  }
+  .hero-line { font-size: 12px; color: var(--ink-2); letter-spacing: 0.06em; font-style: italic; }
+
+  .hero-foot {
+    display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap;
+  }
+  .scroll-cue { text-decoration: none; }
+
+  /* ── SHELL / INTERIOR IMAGE STACK ─────────────────────── */
+  .stack { position: relative; aspect-ratio: 1; }
+  .stack img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; transition: opacity .45s ease, transform .6s ease;
+  }
+  .stack .in { opacity: 0; transform: scale(.96) rotate(-4deg); }
+  .reveal:hover .stack .in, .reveal:focus-visible .stack .in, .stack.flipped .in { opacity: 1; transform: none; }
+  .reveal:hover .stack .out, .reveal:focus-visible .stack .out, .stack.flipped .out { opacity: 0; transform: scale(.96) rotate(4deg); }
+
+  /* ── SECTIONS ───────────────────────────────────────────── */
+  section { padding: 96px var(--gutter); border-top: 1px solid var(--line); }
+  .section-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    margin-bottom: 56px; flex-wrap: wrap;
+  }
+  h2 { font-size: 11px; font-weight: 400; letter-spacing: 0.16em; text-transform: uppercase; }
+
+  /* objects grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(170px, 42vw), 1fr));
+    gap: 48px 28px;
+  }
+  .card { text-align: left; display: flex; flex-direction: column; gap: 12px; }
+  .card .stack { background: var(--surface); border: 1px solid var(--line); transition: border-color .15s; }
+  .card .stack img { padding: 8%; }
+  .card:hover .stack { border-color: var(--line-strong); }
+  .card-meta { display: flex; flex-direction: column; gap: 4px; min-height: 3.4em; }
+  .card-id { font-size: 11px; letter-spacing: 0.08em; }
+  .card-temper { font-size: 10px; color: var(--ink-3); line-height: 1.5; font-style: italic; }
+  .card.stranger .card-id { color: var(--ink-3); }
+
+  /* statement */
+  .statement {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 48px;
+  }
+  .statement-body { max-width: 66ch; display: flex; flex-direction: column; gap: 1.4em; }
+  .statement-body p { font-size: 13px; line-height: 1.85; color: var(--ink-2); }
+  .statement-body p:first-child { color: var(--ink); }
+  .manifesto { display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: var(--ink-3); font-style: italic; line-height: 1.6; }
+
+  /* process */
+  .process { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 40px; }
+  figure { display: flex; flex-direction: column; gap: 12px; }
+  video { width: 100%; display: block; border: 1px solid var(--line); background: var(--surface); }
+
+  footer {
+    padding: 40px var(--gutter) 56px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+
+  /* ── VIEWER ─────────────────────────────────────────────── */
+  .viewer {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(8px);
+    display: none;
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+  .viewer.open { display: grid; }
+  .stage {
+    position: relative; overflow: hidden; cursor: grab; touch-action: none; user-select: none;
+    border-right: 1px solid var(--line);
+  }
+  .stage.dragging { cursor: grabbing; }
+  .stage canvas { width: 100%; height: 100%; display: block; }
+  .progress {
+    position: absolute; left: 0; top: 0; height: 1px; background: var(--ink-2);
+    width: 0; transition: width .15s, opacity .4s;
+  }
+  .loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    pointer-events: none; transition: opacity .3s;
+  }
+  .stage-hint { position: absolute; left: 20px; bottom: 18px; pointer-events: none; color: var(--ink-4); }
+  .stage-tools { position: absolute; right: 18px; bottom: 14px; display: flex; gap: 8px; }
+
+  .btn {
+    font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3);
+    border: 1px solid var(--line); padding: 6px 11px; background: var(--bg);
+    transition: color .12s, border-color .12s;
+  }
+  .btn:hover { color: var(--ink); border-color: var(--line-strong); }
+
+  .panel { display: flex; flex-direction: column; padding: 24px 26px; gap: 32px; background: var(--bg); overflow-y: auto; }
+  .panel-top { display: flex; justify-content: space-between; align-items: center; }
+  .close { font-size: 22px; line-height: 1; color: var(--ink-3); }
+  .close:hover { color: var(--ink); }
+  .panel-id { font-size: clamp(40px, 5vw, 64px); letter-spacing: 0.04em; font-weight: 300; }
+  .panel-body { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .panel-form { font-size: 13px; line-height: 1.7; color: var(--ink); }
+  .panel-temper { font-size: 12px; line-height: 1.6; color: var(--ink-3); font-style: italic; }
+  .panel-nav { display: flex; justify-content: space-between; align-items: center; }
+
+  @media (max-width: 760px) {
+    .viewer { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+    .stage { border-right: 0; border-bottom: 1px solid var(--line); }
+    .panel { gap: 16px; padding: 16px; max-height: 42vh; }
+    .panel-id { font-size: 32px; }
+    .stage-hint { display: none; }
+    .statement { grid-template-columns: 1fr; gap: 28px; }
+    nav ul { gap: 16px; }
+    section { padding: 72px var(--gutter); }
+  }
+  .hint-touch { display: none; }
+  @media (hover: none) {
+    .hint-hover { display: none; }
+    .hint-touch { display: inline; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .stack img { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker-track"></div></div>
+
+<header>
+  <nav class="label">
+    <span id="author"></span>
+    <ul>
+      <li><a href="#objects">Objects</a></li>
+      <li><a href="#statement">Statement</a></li>
+      <li><a href="#process">Process</a></li>
+    </ul>
+  </nav>
+
+  <div class="hero-center">
+    <div class="hero-shells" id="hero-shells"></div>
+    <h1>Unearthed</h1>
+    <p class="hero-line">Matter becomes skin.</p>
+  </div>
+
+  <div class="hero-foot label">
+    <span id="course"></span>
+    <a class="scroll-cue" href="#objects">31 objects ↓</a>
+  </div>
+</header>
+
+<section id="objects">
+  <div class="section-head">
+    <h2>Objects</h2>
+    <span class="label hint-hover">hover to turn over · click to hold</span>
+    <span class="label hint-touch">tap to hold</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<section id="statement">
+  <div class="statement">
+    <div class="section-head" style="flex-direction:column;align-items:flex-start;margin:0">
+      <h2>Statement</h2>
+    </div>
+    <div class="statement-body" id="statement-body"></div>
+  </div>
+</section>
+
+<section id="process">
+  <div class="section-head">
+    <h2>Process</h2>
+    <span class="label">screen recordings · March 2026</span>
+  </div>
+  <div class="process">
+    <figure>
+      <video src="media/walkthrough.mp4" poster="media/walkthrough.jpg" muted loop playsinline preload="none" data-autoplay></video>
+      <figcaption class="label">The archive, browsed</figcaption>
+    </figure>
+    <figure>
+      <video src="media/inversion.mp4" poster="media/inversion.jpg" muted loop playsinline preload="none" data-autoplay></video>
+      <figcaption class="label">Turning an object over</figcaption>
+    </figure>
+  </div>
+</section>
+
+<footer class="label">
+  <span id="footer-author"></span>
+  <span id="footer-course"></span>
+</footer>
+
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-labelledby="panel-id">
+  <div class="stage" id="stage">
+    <canvas id="stage-canvas"></canvas>
+    <div class="progress" id="progress"></div>
+    <div class="loading label" id="loading">unearthing…</div>
+    <div class="stage-hint label">drag to turn · scroll to zoom · right-drag to pan</div>
+    <div class="stage-tools">
+      <button class="btn" id="flip">turn over</button>
+      <button class="btn" id="reset">reset</button>
+    </div>
+  </div>
+  <aside class="panel">
+    <div class="panel-top">
+      <span class="label" id="panel-count"></span>
+      <button class="close" id="close" aria-label="Close">×</button>
+    </div>
+    <div class="panel-body">
+      <div class="panel-id" id="panel-id"></div>
+      <p class="panel-form" id="panel-form"></p>
+      <p class="panel-temper" id="panel-temper"></p>
+    </div>
+    <div class="panel-nav">
+      <button class="btn" id="prev">← prev</button>
+      <button class="btn" id="next">next →</button>
+    </div>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/meshopt_decoder.js"></script>
+<script src="js/stage.js"></script>
+<script src="data.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const keyOf = rock => rock.file || rock.id;
+
+function stack(rock, eager) {
+  const s = document.createElement('div');
+  s.className = 'stack';
+  const k = keyOf(rock), loading = eager ? 'eager' : 'lazy';
+  s.innerHTML = `<img class="out" src="thumbs/${k}-out.webp" alt="" loading="${loading}">` +
+                `<img class="in" src="thumbs/${k}-in.webp" alt="" loading="${loading}">`;
+  return s;
+}
+
+// ── CREDITS ──────────────────────────────────────────────────────────────────
+$('author').textContent = $('footer-author').textContent = AUTHOR;
+$('course').textContent = COURSE;
+$('footer-course').textContent = COURSE;
+
+// ── HERO: three shells that slowly turn themselves over ─────────────────────
+(function () {
+  const picks = ['006', '022', '010'].map(id => ROCKS.find(r => r.id === id));
+  const wrap = $('hero-shells');
+  const stacks = picks.map(r => { const s = stack(r, true); wrap.appendChild(s); return s; });
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let i = 0;
+  setInterval(() => { stacks[i % 3].classList.toggle('flipped'); i++; }, 1800);
+})();
+
+// ── GRID ─────────────────────────────────────────────────────────────────────
+ROCKS.forEach((rock, i) => {
+  const b = document.createElement('button');
+  b.className = 'card reveal' + (rock.file ? ' stranger' : '');
+  b.setAttribute('aria-label', `Object ${rock.id}${rock.temper ? ': ' + rock.temper : ''}`);
+  b.appendChild(stack(rock));
+  const meta = document.createElement('div');
+  meta.className = 'card-meta';
+  meta.innerHTML = '<span class="card-id"></span><span class="card-temper"></span>';
+  meta.children[0].textContent = rock.id;
+  meta.children[1].textContent = rock.temper || '—';
+  b.appendChild(meta);
+  b.addEventListener('click', () => openViewer(i));
+  $('grid').appendChild(b);
+});
+
+// ── STATEMENT ────────────────────────────────────────────────────────────────
+STATEMENT.forEach(t => { const p = document.createElement('p'); p.textContent = t; $('statement-body').appendChild(p); });
+
+// ── TICKER ───────────────────────────────────────────────────────────────────
+(function () {
+  const track = $('ticker-track');
+  for (let n = 0; n < 2; n++) MANIFESTO.forEach(s => {
+    const span = document.createElement('span'); span.textContent = s; track.appendChild(span);
+  });
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  requestAnimationFrame(() => {
+    const halfW = track.scrollWidth / 2;
+    let x = 0, last = null;
+    (function tick(ts) {
+      if (last !== null) { x -= (ts - last) * 0.032; if (-x >= halfW) x += halfW; track.style.transform = `translateX(${x}px)`; }
+      last = ts; requestAnimationFrame(tick);
+    })(performance.now());
+  });
+})();
+
+// ── PROCESS VIDEOS: play only while on screen ───────────────────────────────
+document.querySelectorAll('video[data-autoplay]').forEach(v => {
+  new IntersectionObserver(([e]) => {
+    if (e.isIntersecting) v.play().catch(() => {}); else v.pause();
+  }, { threshold: 0.3 }).observe(v);
+});
+
+// ── VIEWER ───────────────────────────────────────────────────────────────────
+const viewer = $('viewer'), stageEl = $('stage'), canvas = $('stage-canvas');
+const renderer = Stage.makeRenderer({ canvas });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xfafafa);
+Stage.addLights(scene);
+
+// orthographic camera on a pivot; the pivot is what the visitor turns
+const pivot = new THREE.Object3D();
+scene.add(pivot);
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -2000, 2000);
+pivot.add(camera);
+const INIT_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
+
+const cache = new Map();
+let current = -1, model = null, half = 1, raf = 0, tween = null;
+
+function sizeStage() {
+  const W = stageEl.clientWidth, H = stageEl.clientHeight, a = W / H;
+  camera.left = -half * a; camera.right = half * a; camera.top = half; camera.bottom = -half;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H, false);
+}
+
+function resetView() {
+  tween = null;
+  pivot.quaternion.copy(INIT_Q); pivot.position.set(0, 0, 0);
+  camera.zoom = 1; camera.updateProjectionMatrix();
+}
+
+function loop() {
+  raf = requestAnimationFrame(loop);
+  if (tween) {
+    const t = Math.min(1, (performance.now() - tween.start) / 900), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    THREE.Quaternion.slerp(tween.from, tween.to, pivot.quaternion, e);
+    if (t === 1) tween = null;
+  }
+  renderer.render(scene, camera);
+}
+
+async function show(i) {
+  current = (i + ROCKS.length) % ROCKS.length;
+  const rock = ROCKS[current], k = keyOf(rock);
+  $('panel-id').textContent = rock.id;
+  $('panel-form').textContent = rock.form || '—';
+  $('panel-temper').textContent = rock.temper || '';
+  $('panel-count').textContent = `${String(current + 1).padStart(2, '0')} / ${ROCKS.length}`;
+
+  if (model) { scene.remove(model); model = null; }
+  $('loading').style.opacity = 1;
+  const bar = $('progress'); bar.style.opacity = 1; bar.style.width = '0';
+
+  let src = cache.get(k);
+  if (!src) {
+    try { src = await Stage.load(`models/${k}.glb`, p => bar.style.width = (p * 100) + '%'); }
+    catch (e) { $('loading').textContent = 'could not load this object'; console.error(e); return; }
+    cache.set(k, src);
+  }
+  if (ROCKS[current] !== rock) return; // visitor moved on while loading
+
+  model = src;
+  half = Stage.fit(model) * 0.7;
+  pivot.position.set(0, 0, 0);
+  camera.position.set(0, 0, half * 3);
+  scene.add(model);
+  sizeStage(); resetView();
+  bar.style.width = '100%'; bar.style.opacity = 0; $('loading').style.opacity = 0;
+}
+
+function openViewer(i) {
+  viewer.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  sizeStage();
+  if (!raf) loop();
+  show(i);
+  $('close').focus();
+}
+function closeViewer() {
+  viewer.classList.remove('open');
+  document.body.style.overflow = '';
+  cancelAnimationFrame(raf); raf = 0;
+}
+
+$('close').addEventListener('click', closeViewer);
+$('prev').addEventListener('click', () => show(current - 1));
+$('next').addEventListener('click', () => show(current + 1));
+$('reset').addEventListener('click', resetView);
+$('flip').addEventListener('click', () => {
+  // half-turn about the screen's horizontal axis: what was underneath faces the visitor
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(pivot.quaternion);
+  const turn = new THREE.Quaternion().setFromAxisAngle(right, Math.PI);
+  tween = { from: pivot.quaternion.clone(), to: pivot.quaternion.clone().premultiply(turn), start: performance.now() };
+});
+window.addEventListener('resize', () => { if (viewer.classList.contains('open')) sizeStage(); });
+window.addEventListener('keydown', e => {
+  if (!viewer.classList.contains('open')) return;
+  if (e.key === 'Escape') closeViewer();
+  if (e.key === 'ArrowLeft') show(current - 1);
+  if (e.key === 'ArrowRight') show(current + 1);
+});
+
+// trackball: drag to turn, right-drag or two fingers to pan, wheel or pinch to zoom
+(function () {
+  const pts = new Map();
+  let mode = null, lastPinch = 0;
+  const zoomBy = f => { camera.zoom = Math.max(0.1, Math.min(20, camera.zoom * f)); camera.updateProjectionMatrix(); };
+  const centroid = () => { let x = 0, y = 0; pts.forEach(p => { x += p.x; y += p.y; }); return { x: x / pts.size, y: y / pts.size }; };
+  const spread = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  let last = null;
+
+  stageEl.addEventListener('contextmenu', e => e.preventDefault());
+  stageEl.addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    stageEl.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    tween = null;
+    mode = pts.size === 2 ? 'pinch' : (e.button === 2 ? 'pan' : 'turn');
+    last = centroid(); if (mode === 'pinch') lastPinch = spread();
+    stageEl.classList.add('dragging');
+  });
+  stageEl.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const c = centroid(), dx = c.x - last.x, dy = c.y - last.y; last = c;
+    if (mode === 'turn') {
+      const s = 0.007;
+      const axisX = new THREE.Vector3(1, 0, 0).applyQuaternion(pivot.quaternion);
+      pivot.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -dx * s));
+      pivot.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axisX, -dy * s));
+      pivot.quaternion.normalize();
+    } else {
+      const s = (2 * half) / (stageEl.clientHeight * camera.zoom);
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(pivot.quaternion);
+      const up = new THREE.Vector3(0, 1, 0).applyQuaternion(pivot.quaternion);
+      pivot.position.addScaledVector(right, -dx * s).addScaledVector(up, dy * s);
+      if (mode === 'pinch') { const d = spread(); zoomBy(d / lastPinch); lastPinch = d; }
+    }
+  });
+  const end = e => {
+    pts.delete(e.pointerId);
+    if (pts.size === 0) { mode = null; stageEl.classList.remove('dragging'); }
+    else { mode = 'turn'; last = centroid(); }
+  };
+  stageEl.addEventListener('pointerup', end);
+  stageEl.addEventListener('pointercancel', end);
+  stageEl.addEventListener('wheel', e => { e.preventDefault(); zoomBy(1 - e.deltaY * 0.001); }, { passive: false });
+})();
+</script>
+</body>
+</html>
