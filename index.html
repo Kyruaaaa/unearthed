@@ -115,8 +115,12 @@
     gap: 48px 28px;
   }
   .card { text-align: left; display: flex; flex-direction: column; gap: 12px; }
-  .card .stack { background: var(--surface); border: 1px solid var(--line); transition: border-color .15s; }
+  .card .stack { background: var(--surface); border: 1px solid var(--line); transition: border-color .15s; overflow: hidden; }
   .card .stack img { padding: 8%; }
+  /* the turning shell is a looped video with the card colour baked in; the interior
+     sits above it on its own surface so the two never show a seam */
+  .card .stack video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .card .stack .in { background: var(--surface); }
   .card:hover .stack { border-color: var(--line-strong); }
   .card-meta { display: flex; flex-direction: column; gap: 4px; min-height: 3.4em; }
   .card-id { font-size: 11px; letter-spacing: 0.08em; }
@@ -334,11 +338,34 @@ $('footer-course').textContent = COURSE;
 })();
 
 // ── GRID ─────────────────────────────────────────────────────────────────────
+const stillMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const spinWatch = new IntersectionObserver(entries => entries.forEach(e => {
+  const v = e.target;
+  if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); }
+  else v.pause();
+}), { rootMargin: '200px' });
+
+function spinStack(rock) {
+  const s = stack(rock);
+  if (stillMotion) return s;
+  const k = keyOf(rock), v = document.createElement('video');
+  v.className = 'out';
+  v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'none';
+  v.poster = `spin/${k}.jpg`;
+  v.dataset.src = `spin/${k}.mp4`;
+  v.setAttribute('aria-hidden', 'true');
+  s.querySelector('img.out').replaceWith(v);
+  // stagger the start so the grid doesn't turn in lockstep
+  v.addEventListener('loadedmetadata', () => { v.currentTime = Math.random() * v.duration; }, { once: true });
+  spinWatch.observe(v);
+  return s;
+}
+
 ROCKS.forEach((rock, i) => {
   const b = document.createElement('button');
   b.className = 'card reveal' + (rock.file ? ' stranger' : '');
   b.setAttribute('aria-label', `Object ${rock.id}${rock.temper ? ': ' + rock.temper : ''}`);
-  b.appendChild(stack(rock));
+  b.appendChild(spinStack(rock));
   const meta = document.createElement('div');
   meta.className = 'card-meta';
   meta.innerHTML = '<span class="card-id"></span><span class="card-temper"></span>';
